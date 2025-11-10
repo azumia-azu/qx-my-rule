@@ -1,0 +1,27 @@
+# =======================
+# 🎥 Niconico / ニコニコ動画 分流规则
+# =======================
+
+# 核心域名
+DOMAIN-SUFFIX,nicovideo.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,niconico.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,nimg.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,smilevideo.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,dmc.nico,🇯🇵 Niconico
+
+# 常用子域补充
+DOMAIN-SUFFIX,live.nicovideo.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,api.search.nicovideo.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,oembed.nicovideo.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,secure.nicovideo.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,ext.nicovideo.jp,🇯🇵 Niconico
+DOMAIN-SUFFIX,nicovideo.cdn.nimg.jp,🇯🇵 Niconico
+
+# 可选关键字规则（谨慎启用，可能误命中）
+# DOMAIN-KEYWORD,niconico,🇯🇵 Niconico
+# DOMAIN-KEYWORD,nicovideo,🇯🇵 Niconico
+
+# =======================
+# END OF NICONICO RULES
+# =======================
+

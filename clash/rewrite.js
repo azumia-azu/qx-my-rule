@@ -44,7 +44,9 @@ function main(config, profileName) {
     .filter((name) => !existingGroupNames.has(name))
     .map((name) => ({
       name,
-      type: 'select',
+      type: 'url-test',
+      url: 'http://www.gstatic.com/generate_204',
+      interval: 600,
       proxies: countryMap.get(name),
     }));
 
@@ -60,28 +62,29 @@ const EXTRA_GROUP_TEMPLATES = [
   {
     name: 'OpenAI',
     type: 'select',
-    include: ['节点选择'], // 先用总入口
-    countries: 'openai-supported', // 仅使用 OpenAI 支持的国家/地区节点
+    include: ['美国'], // 先用总入口
   },
   {
     name: 'Niconico',
     type: 'select',
-    include: ['节点选择'], // 保留手动入口
-    countries: ['日本'], // 仅日本节点
+    include: ['日本'], // 保留手动入口
+  },
+  {
+    name: 'Gemini',
+    type: 'select',
+    include: ['节点选择', '美国', '英国', '日本', '新加坡'], // 常见可用地区
   },
   // 示例：将港台节点聚合到一个策略组，按需改名或添加更多模板
   // {
   //   name: '港台节点',
   //   type: 'select',
   //   include: ['节点选择'], // 静态前置项，可选
-  //   countries: ['香港', '台湾'], // 从这些国家的节点填充
   // },
   // {
   //   name: '全球自动',
   //   type: 'url-test',
   //   url: 'http://www.gstatic.com/generate_204',
   //   interval: 600,
-  //   countries: 'all', // 将所有国家的节点纳入测速
   // },
 ];
 
@@ -104,6 +107,16 @@ const RULE_PROVIDER_TEMPLATES = [
     behavior: 'classical',
     url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/niconico.list',
     path: './ruleset/niconico.list',
+    interval: 86400,
+    format: 'text',
+  },
+  {
+    name: 'Gemini',
+    policy: 'Gemini',
+    type: 'http',
+    behavior: 'classical',
+    url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/gemini.list',
+    path: './ruleset/gemini.list',
     interval: 86400,
     format: 'text',
   },
@@ -162,19 +175,6 @@ function materializeExtraGroups(countryMap) {
 
     const proxies = Array.isArray(include) ? [...include.filter(Boolean)] : [];
 
-    const countryList =
-      countries === 'all'
-        ? Array.from(countryMap.values()).flat()
-        : countries === 'openai-supported'
-          ? Array.from(countryMap.entries())
-              .filter(([country]) => isOpenaiSupportedCountry(country))
-              .flatMap(([, nodes]) => nodes)
-        : Array.isArray(countries)
-          ? countries.flatMap((country) => countryMap.get(country) || [])
-          : [];
-
-    proxies.push(...countryList.filter(Boolean));
-
     return { name, type, proxies, ...rest };
   }).filter(Boolean);
 }
@@ -223,41 +223,7 @@ function materializeRuleProviders(config) {
   return { ruleProviders: baseProviders, rules: baseRules };
 }
 
-// OpenAI 官方未支持的地区（简化版），匹配中文名或代码
-const OPENAI_UNSUPPORTED_COUNTRIES = new Set([
-  '中国',
-  '中国大陆',
-  'CN',
-  '香港',
-  'HK',
-  'HKG',
-  '俄罗斯',
-  'RU',
-  'RUS',
-  '白俄罗斯',
-  'BY',
-  '伊朗',
-  'IR',
-  'IRN',
-  '朝鲜',
-  'KP',
-  'PRK',
-  '古巴',
-  'CU',
-  'CUB',
-  '叙利亚',
-  'SY',
-  'SYR',
-  '阿富汗',
-  'AF',
-  'AFG',
-]);
 
-function isOpenaiSupportedCountry(countryName) {
-  if (!countryName) return false;
-  const normalized = normalizeCountryName(countryName);
-  return !OPENAI_UNSUPPORTED_COUNTRIES.has(normalized);
-}
 
 function normalizeCountryName(name) {
   if (!name) return '';

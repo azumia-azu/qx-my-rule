@@ -74,6 +74,11 @@ const EXTRA_GROUP_TEMPLATES = [
     type: 'select',
     include: ['节点选择', '美国', '英国', '日本', '新加坡'], // 常见可用地区
   },
+  {
+    name: 'EHentai',
+    type: 'select',
+    include: ['节点选择', '日本', '台湾', '台湾动态ip', '香港', '美国'], // 常见可用地区，按需调整
+  },
   // 示例：将港台节点聚合到一个策略组，按需改名或添加更多模板
   // {
   //   name: '港台节点',
@@ -117,6 +122,16 @@ const RULE_PROVIDER_TEMPLATES = [
     behavior: 'classical',
     url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/gemini.list',
     path: './ruleset/gemini.list',
+    interval: 86400,
+    format: 'text',
+  },
+  {
+    name: 'EHentai',
+    policy: 'EHentai',
+    type: 'http',
+    behavior: 'classical',
+    url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/ehentai.list',
+    path: './ruleset/ehentai.list',
     interval: 86400,
     format: 'text',
   },

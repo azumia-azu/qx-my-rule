@@ -63,6 +63,12 @@ const EXTRA_GROUP_TEMPLATES = [
     include: ['节点选择'], // 先用总入口
     countries: 'openai-supported', // 仅使用 OpenAI 支持的国家/地区节点
   },
+  {
+    name: 'Niconico',
+    type: 'select',
+    include: ['节点选择'], // 保留手动入口
+    countries: ['日本'], // 仅日本节点
+  },
   // 示例：将港台节点聚合到一个策略组，按需改名或添加更多模板
   // {
   //   name: '港台节点',
@@ -88,6 +94,16 @@ const RULE_PROVIDER_TEMPLATES = [
     behavior: 'classical', // 使用经典规则语法，方便混合 DOMAIN/IP
     url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/openai-codex.list',
     path: './ruleset/openai-codex.list',
+    interval: 86400,
+    format: 'text',
+  },
+  {
+    name: 'Niconico',
+    policy: 'Niconico', // 将 RULE-SET 套用到哪个策略组
+    type: 'http',
+    behavior: 'classical',
+    url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/niconico.list',
+    path: './ruleset/niconico.list',
     interval: 86400,
     format: 'text',
   },

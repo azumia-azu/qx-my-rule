@@ -100,7 +100,7 @@ const RULE_PROVIDER_TEMPLATES = [
     policy: 'OpenAI', // 将 RULE-SET 套用到哪个策略组
     type: 'http',
     behavior: 'classical', // 使用经典规则语法，方便混合 DOMAIN/IP
-    url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/openai-codex.list',
+    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/openai-codex.list',
     path: './ruleset/openai-codex.list',
     interval: 86400,
     format: 'text',
@@ -110,7 +110,7 @@ const RULE_PROVIDER_TEMPLATES = [
     policy: 'Niconico', // 将 RULE-SET 套用到哪个策略组
     type: 'http',
     behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/niconico.list',
+    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/niconico.list',
     path: './ruleset/niconico.list',
     interval: 86400,
     format: 'text',
@@ -120,7 +120,7 @@ const RULE_PROVIDER_TEMPLATES = [
     policy: 'Gemini',
     type: 'http',
     behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/gemini.list',
+    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/gemini.list',
     path: './ruleset/gemini.list',
     interval: 86400,
     format: 'text',
@@ -130,7 +130,7 @@ const RULE_PROVIDER_TEMPLATES = [
     policy: 'EHentai',
     type: 'http',
     behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumili/qx-my-rule/main/clash/ruleset/ehentai.list',
+    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/ehentai.list',
     path: './ruleset/ehentai.list',
     interval: 86400,
     format: 'text',

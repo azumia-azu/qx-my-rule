@@ -1,0 +1,21 @@
+# =======================
+# 💬 Discord 分流规则
+# =======================
+
+# 核心域名
+DOMAIN-SUFFIX,discord.com,💬 Discord
+DOMAIN-SUFFIX,discord.gg,💬 Discord
+DOMAIN-SUFFIX,discordapp.com,💬 Discord
+DOMAIN-SUFFIX,discordapp.net,💬 Discord
+DOMAIN-SUFFIX,discord.co,💬 Discord
+DOMAIN-SUFFIX,discord.media,💬 Discord
+DOMAIN-SUFFIX,discord.gift,💬 Discord
+DOMAIN-SUFFIX,dis.gd,💬 Discord
+DOMAIN-SUFFIX,discordstatus.com,💬 Discord
+
+# 可选关键字规则（谨慎启用，可能误命中）
+# DOMAIN-KEYWORD,discord,💬 Discord
+
+# =======================
+# END OF DISCORD RULES
+# =======================

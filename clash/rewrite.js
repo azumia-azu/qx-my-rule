@@ -79,6 +79,16 @@ const EXTRA_GROUP_TEMPLATES = [
     type: 'select',
     include: ['节点选择', '日本', '台湾', '台湾动态ip', '香港', '美国'], // 常见可用地区，按需调整
   },
+  {
+    name: 'Gakuen Idolmaster',
+    type: 'select',
+    include: ['节点选择', '日本'], // 学园偶像大师默认走日本节点
+  },
+  {
+    name: 'DMM',
+    type: 'select',
+    include: ['节点选择', '日本'], // DMM 相关服务默认走日本节点
+  },
   // 示例：将港台节点聚合到一个策略组，按需改名或添加更多模板
   // {
   //   name: '港台节点',
@@ -132,6 +142,26 @@ const RULE_PROVIDER_TEMPLATES = [
     behavior: 'classical',
     url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/ehentai.list',
     path: './ruleset/ehentai.list',
+    interval: 86400,
+    format: 'text',
+  },
+  {
+    name: 'Gakuen Idolmaster',
+    policy: 'Gakuen Idolmaster',
+    type: 'http',
+    behavior: 'classical',
+    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/gakuen-idolmaster.list',
+    path: './ruleset/gakuen-idolmaster.list',
+    interval: 86400,
+    format: 'text',
+  },
+  {
+    name: 'DMM',
+    policy: 'DMM',
+    type: 'http',
+    behavior: 'classical',
+    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/dmm.list',
+    path: './ruleset/dmm.list',
     interval: 86400,
     format: 'text',
   },

@@ -184,7 +184,7 @@ function buildCountryMap(proxies) {
 }
 
 function extractCountry(name) {
-  const match = name.match(/^[\p{Script=Han}A-Za-z]+/u);
+  const match = name.match(/[\p{Script=Han}A-Za-z]+/u);
   if (!match) return null;
 
   const raw = match[0];
@@ -232,10 +232,11 @@ function materializeRuleProviders(config) {
 
   const baseRules = Array.isArray(config.rules) ? [...config.rules] : [];
   const existing = new Set(Object.keys(baseProviders));
+  const existingRules = new Set(baseRules);
+  const addedRules = [];
 
   RULE_PROVIDER_TEMPLATES.forEach((tpl) => {
     if (!tpl || !tpl.name) return;
-    if (existing.has(tpl.name)) return;
 
     const {
       name,
@@ -249,23 +250,41 @@ function materializeRuleProviders(config) {
       ...rest
     } = tpl;
 
-    if (!url) return;
+    if (url && !existing.has(name)) {
+      baseProviders[name] = {
+        type,
+        behavior,
+        interval,
+        url,
+        path,
+        format,
+        ...rest,
+      };
 
-    baseProviders[name] = {
-      type,
-      behavior,
-      interval,
-      url,
-      path,
-      format,
-      ...rest,
-    };
+      existing.add(name);
+    }
 
-    baseRules.push(`RULE-SET,${name},${policy}`);
-    existing.add(name);
+    const rule = `RULE-SET,${name},${policy}`;
+    if (!existingRules.has(rule)) {
+      addedRules.push(rule);
+      existingRules.add(rule);
+    }
   });
 
+  if (addedRules.length > 0) {
+    const terminalIndex = baseRules.findIndex(isTerminalRule);
+    if (terminalIndex === -1) {
+      baseRules.push(...addedRules);
+    } else {
+      baseRules.splice(terminalIndex, 0, ...addedRules);
+    }
+  }
+
   return { ruleProviders: baseProviders, rules: baseRules };
+}
+
+function isTerminalRule(rule) {
+  return typeof rule === 'string' && /^\s*(MATCH|FINAL)\s*,/i.test(rule);
 }
 
 

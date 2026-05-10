@@ -1,297 +1,299 @@
 function main(config, profileName) {
+  const proxies = config.proxies || [];
+  const proxyNames = proxies.map((p) => p.name).filter(Boolean);
 
-  const proxies = Array.isArray(config.proxies) ? config.proxies : [];
-  if (proxies.length === 0) return config;
+  // ===== 工具函数 =====
 
-  const { ruleProviders, rules } = materializeRuleProviders(config);
-  const countryMap = buildCountryMap(proxies);
-  const countryNames = Array.from(countryMap.keys());
-  const allProxyNames = proxies.map(({ name }) => name).filter(Boolean);
-  const extraGroups = materializeExtraGroups(countryMap);
+  const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 
-  const baseGroups = Array.isArray(config['proxy-groups'])
-    ? config['proxy-groups']
-    : [];
+  const byRegex = (regex) => {
+    return proxyNames.filter((name) => regex.test(name));
+  };
 
-  const updatedGroups = baseGroups.map((group) => {
-    if (!group || !group.name) return group;
+  const makeUrlTest = (name, list, extra = {}) => {
+    return {
+      name,
+      type: "url-test",
+      proxies: list.length > 0 ? list : ["DIRECT"],
+      url: "https://www.gstatic.com/generate_204",
+      interval: 300,
+      tolerance: 50,
+      lazy: true,
+      ...extra,
+    };
+  };
 
-    if (group.name === '节点选择') {
-      return { ...group, proxies: ['自动选择', ...countryNames] };
-    }
+  const makeSelect = (name, list, extra = {}) => {
+    return {
+      name,
+      type: "select",
+      proxies: uniq(list),
+      ...extra,
+    };
+  };
 
-    if (group.name === '自动选择') {
-      return { ...group, proxies: allProxyNames };
-    }
+  const groupNames = {
+    main: "节点选择",
+    auto: "自动选择",
+    hk: "香港节点",
+    jp: "日本节点",
+    tw: "台湾节点",
+    sg: "新加坡节点",
+    us: "美国节点",
+    eu: "欧洲节点",
+    other: "其他节点",
 
-    return group;
-  });
+    ai: "AI",
+    youtube: "YouTube",
+    telegram: "Telegram",
+    github: "GitHub",
+    microsoft: "Microsoft",
+    apple: "Apple",
+    games: "Games",
+    final: "漏网之鱼",
+  };
 
-  const existingGroupNames = new Set(
-    updatedGroups.map((group) => group && group.name).filter(Boolean),
+  // ===== 自动节点分组 =====
+
+  const hk = byRegex(/香港|HK|Hong Kong/i);
+  const jp = byRegex(/日本|东京|JP|Japan/i);
+  const tw = byRegex(/台湾|台灣|TW|Taiwan/i);
+  const sg = byRegex(/新加坡|狮城|SG|Singapore/i);
+  const us = byRegex(/美国|美國|US|USA|United States/i);
+
+  const eu = byRegex(
+    /英国|英國|法国|法國|德国|德國|荷兰|荷蘭|瑞士|意大利|西班牙|葡萄牙|芬兰|芬蘭|波兰|波蘭|捷克|希腊|希臘|比利时|比利時|奥地利|奧地利|爱尔兰|愛爾蘭|欧洲|歐洲|UK|France|Germany|Netherlands|Europe/i
   );
 
-  const mergedGroups = [...updatedGroups];
+  const known = new Set([...hk, ...jp, ...tw, ...sg, ...us, ...eu]);
+  const other = proxyNames.filter((name) => !known.has(name));
 
-  extraGroups.forEach((group) => {
-    if (!existingGroupNames.has(group.name)) {
-      mergedGroups.push(group);
-      existingGroupNames.add(group.name);
-    }
-  });
+  const regionGroups = [
+    groupNames.auto,
+    groupNames.hk,
+    groupNames.jp,
+    groupNames.tw,
+    groupNames.sg,
+    groupNames.us,
+    groupNames.eu,
+    groupNames.other,
+  ];
 
-  const countryGroups = countryNames
-    .filter((name) => !existingGroupNames.has(name))
-    .map((name) => ({
-      name,
-      type: 'url-test',
-      url: 'http://www.gstatic.com/generate_204',
-      interval: 600,
-      proxies: countryMap.get(name),
-    }));
+  // ===== 基础代理组 =====
 
-  return {
-    ...config,
-    'proxy-groups': [...mergedGroups, ...countryGroups],
-    'rule-providers': ruleProviders,
-    rules,
-  };
-}
+  const proxyGroups = [
+    makeSelect(groupNames.main, [
+      groupNames.auto,
+      groupNames.hk,
+      groupNames.jp,
+      groupNames.tw,
+      groupNames.sg,
+      groupNames.us,
+      groupNames.eu,
+      groupNames.other,
+      "DIRECT",
+    ]),
 
-const EXTRA_GROUP_TEMPLATES = [
-  {
-    name: 'OpenAI',
-    type: 'select',
-    include: ['美国'], // 先用总入口
-  },
-  {
-    name: 'Niconico',
-    type: 'select',
-    include: ['日本'], // 保留手动入口
-  },
-  {
-    name: 'Gemini',
-    type: 'select',
-    include: ['节点选择', '美国', '英国', '日本', '新加坡'], // 常见可用地区
-  },
-  {
-    name: 'EHentai',
-    type: 'select',
-    include: ['节点选择', '日本', '台湾', '台湾动态ip', '香港', '美国'], // 常见可用地区，按需调整
-  },
-  {
-    name: 'Gakuen Idolmaster',
-    type: 'select',
-    include: ['节点选择', '日本'], // 学园偶像大师默认走日本节点
-  },
-  {
-    name: 'DMM',
-    type: 'select',
-    include: ['节点选择', '日本'], // DMM 相关服务默认走日本节点
-  },
-  // 示例：将港台节点聚合到一个策略组，按需改名或添加更多模板
-  // {
-  //   name: '港台节点',
-  //   type: 'select',
-  //   include: ['节点选择'], // 静态前置项，可选
-  // },
-  // {
-  //   name: '全球自动',
-  //   type: 'url-test',
-  //   url: 'http://www.gstatic.com/generate_204',
-  //   interval: 600,
-  // },
-];
+    makeUrlTest(groupNames.auto, proxyNames),
 
-// 根据 rule-provider 设计的模版，引入远端规则集并自动在 rules 里挂载
-const RULE_PROVIDER_TEMPLATES = [
-  {
-    name: 'OpenAI-Codex',
-    policy: 'OpenAI', // 将 RULE-SET 套用到哪个策略组
-    type: 'http',
-    behavior: 'classical', // 使用经典规则语法，方便混合 DOMAIN/IP
-    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/openai-codex.list',
-    path: './ruleset/openai-codex.list',
-    interval: 86400,
-    format: 'text',
-  },
-  {
-    name: 'Niconico',
-    policy: 'Niconico', // 将 RULE-SET 套用到哪个策略组
-    type: 'http',
-    behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/niconico.list',
-    path: './ruleset/niconico.list',
-    interval: 86400,
-    format: 'text',
-  },
-  {
-    name: 'Gemini',
-    policy: 'Gemini',
-    type: 'http',
-    behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/gemini.list',
-    path: './ruleset/gemini.list',
-    interval: 86400,
-    format: 'text',
-  },
-  {
-    name: 'EHentai',
-    policy: 'EHentai',
-    type: 'http',
-    behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/ehentai.list',
-    path: './ruleset/ehentai.list',
-    interval: 86400,
-    format: 'text',
-  },
-  {
-    name: 'Gakuen Idolmaster',
-    policy: 'Gakuen Idolmaster',
-    type: 'http',
-    behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/gakuen-idolmaster.list',
-    path: './ruleset/gakuen-idolmaster.list',
-    interval: 86400,
-    format: 'text',
-  },
-  {
-    name: 'DMM',
-    policy: 'DMM',
-    type: 'http',
-    behavior: 'classical',
-    url: 'https://raw.githubusercontent.com/azumia-azu/qx-my-rule/main/clash/ruleset/dmm.list',
-    path: './ruleset/dmm.list',
-    interval: 86400,
-    format: 'text',
-  },
-];
+    makeUrlTest(groupNames.hk, hk),
+    makeUrlTest(groupNames.jp, jp),
+    makeUrlTest(groupNames.tw, tw),
+    makeUrlTest(groupNames.sg, sg),
+    makeUrlTest(groupNames.us, us),
+    makeUrlTest(groupNames.eu, eu),
+    makeSelect(groupNames.other, other.length > 0 ? other : proxyNames),
 
-function buildCountryMap(proxies) {
-  const map = new Map();
+    // ===== 规则策略组 =====
+    makeSelect(groupNames.ai, [
+      groupNames.jp,
+      groupNames.sg,
+      groupNames.tw,
+      groupNames.us,
+      groupNames.main,
+      "DIRECT",
+    ]),
 
-  proxies.forEach((proxy) => {
-    if (!proxy || !proxy.name) return;
+    makeSelect(groupNames.youtube, [
+      groupNames.hk,
+      groupNames.jp,
+      groupNames.sg,
+      groupNames.tw,
+      groupNames.us,
+      groupNames.main,
+      "DIRECT",
+    ]),
 
-    const country = extractCountry(proxy.name);
-    if (!country) return;
+    makeSelect(groupNames.telegram, [
+      groupNames.sg,
+      groupNames.hk,
+      groupNames.jp,
+      groupNames.us,
+      groupNames.main,
+      "DIRECT",
+    ]),
 
-    if (!map.has(country)) map.set(country, []);
-    map.get(country).push(proxy.name);
-  });
+    makeSelect(groupNames.github, [
+      groupNames.main,
+      groupNames.hk,
+      groupNames.jp,
+      groupNames.sg,
+      "DIRECT",
+    ]),
 
-  return map;
-}
+    makeSelect(groupNames.microsoft, [
+      "DIRECT",
+      groupNames.main,
+      groupNames.hk,
+      groupNames.jp,
+      groupNames.sg,
+    ]),
 
-function extractCountry(name) {
-  const match = name.match(/[\p{Script=Han}A-Za-z]+/u);
-  if (!match) return null;
+    makeSelect(groupNames.apple, [
+      "DIRECT",
+      groupNames.main,
+      groupNames.hk,
+      groupNames.jp,
+      groupNames.sg,
+    ]),
 
-  const raw = match[0];
-  const normalized = normalizeCountryCode(raw);
-  return normalized || raw;
-}
+    makeSelect(groupNames.games, [
+      groupNames.jp,
+      groupNames.hk,
+      groupNames.sg,
+      groupNames.tw,
+      groupNames.main,
+      "DIRECT",
+    ]),
 
-function normalizeCountryCode(code) {
-  const map = {
-    HK: '香港',
-    MO: '澳门',
-    TW: '台湾',
-    SG: '新加坡',
-    JP: '日本',
-    KR: '韩国',
-    US: '美国',
-    USA: '美国',
-    UK: '英国',
-    GB: '英国',
-    AU: '澳大利亚',
-  };
+    makeSelect(groupNames.final, [
+      groupNames.main,
+      groupNames.auto,
+      "DIRECT",
+    ]),
+  ];
 
-  const upper = code.toUpperCase();
-  return map[upper] || null;
-}
+  // ===== 额外自定义规则组 =====
+  // 想加自己的规则组，就在这里追加。
+  //
+  // name: 规则组名称
+  // proxies: 这个规则组可以选择哪些代理组/节点
+  // rules: 这个规则组对应的规则
+  //
+  // 规则会自动插入到 rules 前面。
 
-function materializeExtraGroups(countryMap) {
-  return EXTRA_GROUP_TEMPLATES.map((template) => {
-    if (!template || !template.name) return null;
+  const extraRuleGroups = [
+    {
+      name: "下载",
+      proxies: [
+        "DIRECT",
+        groupNames.main,
+        groupNames.hk,
+        groupNames.jp,
+        groupNames.sg,
+      ],
+      rules: [
+        "DOMAIN-SUFFIX,steamserver.net,下载",
+        "DOMAIN-SUFFIX,cm.steampowered.com,下载",
+        "DOMAIN-SUFFIX,steamcontent.com,下载",
+      ],
+    },
 
-    const { name, type = 'select', include = [], countries, ...rest } =
-      template;
+    {
+      name: "开发",
+      proxies: [
+        groupNames.main,
+        groupNames.hk,
+        groupNames.jp,
+        groupNames.sg,
+        "DIRECT",
+      ],
+      rules: [
+        "DOMAIN-SUFFIX,github.com,开发",
+        "DOMAIN-SUFFIX,githubusercontent.com,开发",
+        "DOMAIN-SUFFIX,githubassets.com,开发",
+        "DOMAIN-SUFFIX,gitlab.com,开发",
+        "DOMAIN-SUFFIX,npmjs.org,开发",
+        "DOMAIN-SUFFIX,npmjs.com,开发",
+        "DOMAIN-SUFFIX,crates.io,开发",
+        "DOMAIN-SUFFIX,static.crates.io,开发",
+      ],
+    },
+  ];
 
-    const proxies = Array.isArray(include) ? [...include.filter(Boolean)] : [];
-
-    return { name, type, proxies, ...rest };
-  }).filter(Boolean);
-}
-
-function materializeRuleProviders(config) {
-  const baseProviders =
-    config && typeof config === 'object' && config['rule-providers']
-      ? { ...config['rule-providers'] }
-      : {};
-
-  const baseRules = Array.isArray(config.rules) ? [...config.rules] : [];
-  const existing = new Set(Object.keys(baseProviders));
-  const existingRules = new Set(baseRules);
-  const addedRules = [];
-
-  RULE_PROVIDER_TEMPLATES.forEach((tpl) => {
-    if (!tpl || !tpl.name) return;
-
-    const {
-      name,
-      policy = '节点选择',
-      type = 'http',
-      behavior = 'domain',
-      interval = 86400,
-      url,
-      path = `./ruleset/${name}.list`,
-      format = 'text',
-      ...rest
-    } = tpl;
-
-    if (url && !existing.has(name)) {
-      baseProviders[name] = {
-        type,
-        behavior,
-        interval,
-        url,
-        path,
-        format,
-        ...rest,
-      };
-
-      existing.add(name);
-    }
-
-    const rule = `RULE-SET,${name},${policy}`;
-    if (!existingRules.has(rule)) {
-      addedRules.push(rule);
-      existingRules.add(rule);
-    }
-  });
-
-  if (addedRules.length > 0) {
-    const terminalIndex = baseRules.findIndex(isTerminalRule);
-    if (terminalIndex === -1) {
-      baseRules.push(...addedRules);
-    } else {
-      baseRules.splice(terminalIndex, 0, ...addedRules);
-    }
+  for (const group of extraRuleGroups) {
+    proxyGroups.push(makeSelect(group.name, group.proxies));
   }
 
-  return { ruleProviders: baseProviders, rules: baseRules };
-}
+  // ===== 规则 =====
 
-function isTerminalRule(rule) {
-  return typeof rule === 'string' && /^\s*(MATCH|FINAL)\s*,/i.test(rule);
-}
+  const baseRules = [
+    // AI
+    `DOMAIN-SUFFIX,openai.com,${groupNames.ai}`,
+    `DOMAIN-SUFFIX,chatgpt.com,${groupNames.ai}`,
+    `DOMAIN-SUFFIX,oaistatic.com,${groupNames.ai}`,
+    `DOMAIN-SUFFIX,oaiusercontent.com,${groupNames.ai}`,
+    `DOMAIN-SUFFIX,anthropic.com,${groupNames.ai}`,
+    `DOMAIN-SUFFIX,claude.ai,${groupNames.ai}`,
+    `DOMAIN-SUFFIX,gemini.google.com,${groupNames.ai}`,
 
+    // YouTube / Google Video
+    `DOMAIN-SUFFIX,youtube.com,${groupNames.youtube}`,
+    `DOMAIN-SUFFIX,ytimg.com,${groupNames.youtube}`,
+    `DOMAIN-SUFFIX,googlevideo.com,${groupNames.youtube}`,
+    `DOMAIN-SUFFIX,youtu.be,${groupNames.youtube}`,
 
+    // Telegram
+    `DOMAIN-SUFFIX,telegram.org,${groupNames.telegram}`,
+    `DOMAIN-SUFFIX,t.me,${groupNames.telegram}`,
+    `IP-CIDR,91.108.4.0/22,${groupNames.telegram},no-resolve`,
+    `IP-CIDR,91.108.8.0/21,${groupNames.telegram},no-resolve`,
+    `IP-CIDR,91.108.16.0/22,${groupNames.telegram},no-resolve`,
+    `IP-CIDR,91.108.56.0/22,${groupNames.telegram},no-resolve`,
+    `IP-CIDR,149.154.160.0/20,${groupNames.telegram},no-resolve`,
 
-function normalizeCountryName(name) {
-  if (!name) return '';
-  const codeNormalized = normalizeCountryCode(name);
-  if (codeNormalized) return codeNormalized;
-  return String(name).trim();
+    // GitHub
+    `DOMAIN-SUFFIX,github.com,${groupNames.github}`,
+    `DOMAIN-SUFFIX,githubusercontent.com,${groupNames.github}`,
+    `DOMAIN-SUFFIX,githubassets.com,${groupNames.github}`,
+
+    // Microsoft
+    `DOMAIN-SUFFIX,microsoft.com,${groupNames.microsoft}`,
+    `DOMAIN-SUFFIX,windows.com,${groupNames.microsoft}`,
+    `DOMAIN-SUFFIX,windowsupdate.com,${groupNames.microsoft}`,
+    `DOMAIN-SUFFIX,office.com,${groupNames.microsoft}`,
+    `DOMAIN-SUFFIX,live.com,${groupNames.microsoft}`,
+
+    // Apple
+    `DOMAIN-SUFFIX,apple.com,${groupNames.apple}`,
+    `DOMAIN-SUFFIX,icloud.com,${groupNames.apple}`,
+    `DOMAIN-SUFFIX,cdn-apple.com,${groupNames.apple}`,
+
+    // Games
+    `DOMAIN-SUFFIX,steampowered.com,${groupNames.games}`,
+    `DOMAIN-SUFFIX,steamcommunity.com,${groupNames.games}`,
+    `DOMAIN-SUFFIX,epicgames.com,${groupNames.games}`,
+
+    // 国内直连
+    "GEOIP,CN,DIRECT",
+    "GEOSITE,CN,DIRECT",
+  ];
+
+  const extraRules = extraRuleGroups.flatMap((group) => group.rules || []);
+
+  // 去掉原来已有的 MATCH，避免 MATCH 太早导致后面的规则失效
+  const oldRules = (config.rules || []).filter((rule) => {
+    return typeof rule === "string" && !/^MATCH,/.test(rule);
+  });
+
+  config["proxy-groups"] = proxyGroups;
+
+  config.rules = uniq([
+    ...extraRules,
+    ...baseRules,
+    ...oldRules,
+    `MATCH,${groupNames.final}`,
+  ]);
+
+  return config;
 }

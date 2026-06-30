@@ -1,0 +1,14 @@
+# =======================
+# 📚 Bangumi 分流规则
+# =======================
+
+# Bangumi Status 当前列出的站点端点
+DOMAIN-SUFFIX,bgm.tv,📚 Bangumi
+DOMAIN-SUFFIX,bangumi.tv,📚 Bangumi
+DOMAIN-SUFFIX,chii.in,📚 Bangumi
+DOMAIN-SUFFIX,next.bgm.tv,📚 Bangumi
+DOMAIN-SUFFIX,api.bgm.tv,📚 Bangumi
+
+# =======================
+# END OF BANGUMI RULES
+# =======================
